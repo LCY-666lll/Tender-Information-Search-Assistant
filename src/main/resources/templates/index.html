@@ -1,0 +1,942 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>您的信息检索助手</title>
+    <style>
+        :root {
+            --bg: #f6f7f9;
+            --surface: #ffffff;
+            --surface-soft: #fafafa;
+            --ink: #16181d;
+            --muted: #6b7280;
+            --line: #e5e7eb;
+            --line-strong: #d1d5db;
+            --button: #2f333a;
+            --button-hover: #434851;
+            --ok: #177245;
+            --warn: #8a5a00;
+            --danger: #b42318;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            color: var(--ink);
+            background: var(--bg);
+            font-family: "Microsoft YaHei", "Noto Sans SC", Arial, sans-serif;
+        }
+        a { color: #1f4f8f; text-decoration: none; word-break: break-all; }
+        a:hover { text-decoration: underline; }
+        main { max-width: 1180px; margin: 0 auto; padding: 34px 20px 56px; }
+        .topbar {
+            display: block;
+            margin-bottom: 22px;
+        }
+        h1 { margin: 0; font-size: 42px; line-height: 1.14; letter-spacing: 0; font-weight: 900; }
+        h2 { margin: 0 0 14px; font-size: 18px; letter-spacing: 0; }
+        h3 { margin: 0; font-size: 16px; line-height: 1.45; }
+        .agent-card {
+            width: fit-content;
+            margin-top: 12px;
+            padding: 7px 11px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: var(--surface);
+            text-align: left;
+            box-shadow: 0 8px 24px rgba(17, 24, 39, .04);
+        }
+        .agent-card strong { display: inline; font-size: 13px; margin-right: 8px; }
+        .agent-card span { color: var(--muted); font-size: 12px; }
+        .workspace, .section {
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: var(--surface);
+            box-shadow: 0 12px 36px rgba(17, 24, 39, .05);
+        }
+        .workspace { padding: 18px; margin-bottom: 14px; }
+        .section { padding: 18px; margin-top: 14px; }
+        .query-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
+            gap: 10px;
+            align-items: center;
+        }
+        input[type="text"], input[type="time"], textarea, select {
+            width: 100%;
+            border: 1px solid var(--line-strong);
+            border-radius: 12px;
+            background: #fff;
+            color: var(--ink);
+            font: inherit;
+            outline: none;
+        }
+        input[type="text"] { min-height: 52px; padding: 0 14px; }
+        input[type="time"], select { min-height: 38px; padding: 0 10px; }
+        textarea { min-height: 54px; padding: 10px 12px; resize: vertical; }
+        input:focus, textarea:focus, select:focus {
+            border-color: #9ca3af;
+            box-shadow: 0 0 0 3px rgba(107, 114, 128, .12);
+        }
+        button, .button {
+            border: 0;
+            border-radius: 12px;
+            background: var(--button);
+            color: white;
+            min-height: 40px;
+            padding: 9px 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        button:hover, .button:hover { background: var(--button-hover); text-decoration: none; }
+        button:disabled { background: #c7cbd1; cursor: not-allowed; }
+        button.secondary, .button.secondary {
+            background: #f3f4f6;
+            color: #252932;
+            border: 1px solid var(--line-strong);
+        }
+        button.secondary:hover, .button.secondary:hover { background: #e5e7eb; }
+        button.small, .button.small { min-height: 32px; padding: 6px 10px; border-radius: 10px; font-size: 13px; }
+        .workspace-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-top: 12px;
+        }
+        .status-text { color: var(--muted); font-size: 13px; }
+        .status-text.running { color: var(--warn); font-weight: 700; }
+        .message {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 12px;
+            background: #f0fdf4;
+            color: var(--ok);
+            border: 1px solid #bbf7d0;
+        }
+        .message.error { background: #fff5f5; color: var(--danger); border-color: #fecaca; }
+        details {
+            margin-top: 12px;
+            border-top: 1px solid var(--line);
+            padding-top: 12px;
+        }
+        summary { cursor: pointer; font-weight: 800; color: #333840; }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .detail-grid div {
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: var(--surface-soft);
+            padding: 10px;
+        }
+        .detail-grid span { display: block; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+        .task-grid {
+            display: grid;
+            grid-template-columns: minmax(260px, 1.5fr) 130px 130px minmax(150px, .9fr) auto;
+            gap: 10px;
+            align-items: end;
+        }
+        .task-module {
+            display: grid;
+            gap: 14px;
+        }
+        .task-summary {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: start;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--surface-soft);
+            padding: 12px 14px;
+        }
+        .task-summary-title {
+            color: var(--muted);
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+        .task-summary strong {
+            display: block;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        .task-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+        .task-pill {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: #fff;
+            padding: 4px 8px;
+            white-space: nowrap;
+        }
+        .plan-list {
+            display: grid;
+            gap: 8px;
+        }
+        .plan-list h3 {
+            font-size: 15px;
+            margin-top: 4px;
+        }
+        .plan-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 10px;
+            align-items: center;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 10px 12px;
+            background: #fff;
+        }
+        .plan-row strong {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .plan-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .field label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+        .switch {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 38px;
+            color: #30343b;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .cards { display: grid; gap: 10px; }
+        .result-card {
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--surface);
+            padding: 14px 16px;
+        }
+        .result-head {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 12px;
+            align-items: start;
+        }
+        .date-pill {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: 4px 9px;
+            color: #374151;
+            background: #f9fafb;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .source-link {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 13px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+        }
+        .source-link a { color: #375a8f; }
+        .summary {
+            margin-top: 8px;
+            color: #30343b;
+            line-height: 1.55;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .attachments {
+            margin-top: 8px;
+            padding: 9px 10px;
+            border-radius: 12px;
+            background: #fafafa;
+            border: 1px solid var(--line);
+            font-size: 13px;
+        }
+        .attachments strong { display: block; margin-bottom: 6px; }
+        .attachments ul { margin: 0; padding-left: 18px; }
+        .attachments li { margin: 4px 0; }
+        .result-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--line);
+        }
+        .check { display: inline-flex; gap: 7px; align-items: center; font-weight: 700; }
+        .empty {
+            border: 1px dashed var(--line-strong);
+            border-radius: 14px;
+            background: #fff;
+            padding: 20px;
+            color: var(--muted);
+        }
+        .pager { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 14px; }
+        .login-tools { display: none; gap: 8px; align-items: center; }
+        .login-tools.visible { display: inline-flex; }
+        .login-state { color: var(--muted); font-size: 13px; }
+        @media (max-width: 860px) {
+            main { padding: 22px 12px 40px; }
+            .topbar, .query-row, .task-grid, .task-summary, .plan-row, .result-head { grid-template-columns: 1fr; display: grid; }
+            .agent-card { text-align: left; }
+            .detail-grid { grid-template-columns: 1fr 1fr; }
+            .plan-actions { flex-wrap: wrap; }
+            button, .button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<main>
+    <header class="topbar">
+        <h1>您的信息检索助手</h1>
+        <div class="agent-card">
+            <strong id="agentStatus">Agent 检测中</strong>
+            <span id="agentDetail">正在检测模型</span>
+        </div>
+    </header>
+
+    <section class="workspace">
+        <form id="searchForm" method="post" action="/api/agent/run">
+            <div class="query-row">
+                <input id="questionInput" type="text" name="question" th:value="${question}"
+                       placeholder="请输入你想查找的信息，例如：最近3个月郑州芯片采购公告有哪些">
+                <button id="sendButton" type="submit">发送</button>
+                <button id="stopButton" class="secondary" type="button" disabled>停止搜寻</button>
+            </div>
+        </form>
+
+        <form id="taskForm" method="post" action="/api/current-task/update"></form>
+        <form id="wordForm" method="post" action="/api/reports/generate">
+            <input type="hidden" id="jobIdInput" name="jobId">
+            <div class="workspace-actions">
+                <button id="downloadButton" type="submit" th:disabled="${result == null}">下载信息聚合word文件</button>
+                <span id="searchStatus" class="status-text">等待输入检索问题</span>
+                <a class="button secondary" th:if="${result != null && result.reportFilename != null}"
+                   th:href="@{'/reports/' + ${result.reportFilename}}">打开已生成 Word</a>
+            </div>
+
+            <div class="message" th:if="${wordMessage != null}" th:text="${wordMessage}"></div>
+            <div class="message error" th:if="${wordError != null}" th:text="${wordError}"></div>
+
+            <details id="detailPanel" th:if="${result != null}">
+                <summary>点击查看执行详情</summary>
+                <div class="detail-grid">
+                    <div><span>关键词</span><b id="detailKeyword" th:text="${result.intent.keyword}">-</b></div>
+                    <div><span>区域</span><b id="detailRegion" th:text="${result.intent.city != null && !result.intent.city.isBlank() ? result.intent.city : result.intent.province}">-</b></div>
+                    <div><span>时间</span><b id="detailTime" th:text="${result.intentTimeText}">-</b></div>
+                    <div><span>频率</span><b id="detailFrequency" th:text="${result.frequencyText}">-</b></div>
+                    <div><span>来源数量</span><b id="detailSources" th:text="${configuredSourceCount}">0</b></div>
+                    <div><span>可参考数量</span><b id="detailCount" th:text="${referenceCount}">0</b></div>
+                    <div><span>意图解析状态</span><b id="detailIntent" th:text="${intentStatus}">规则兜底</b></div>
+                    <div><span>执行时间</span><b id="detailElapsed" th:text="${result.elapsedText}">-</b></div>
+                </div>
+            </details>
+            <details id="detailPanelEmpty" th:if="${result == null}">
+                <summary>点击查看执行详情</summary>
+                <div class="detail-grid">
+                    <div><span>关键词</span><b id="detailKeyword">-</b></div>
+                    <div><span>区域</span><b id="detailRegion">-</b></div>
+                    <div><span>时间</span><b id="detailTime">-</b></div>
+                    <div><span>频率</span><b id="detailFrequency">-</b></div>
+                    <div><span>来源数量</span><b id="detailSources" th:text="${configuredSourceCount}">0</b></div>
+                    <div><span>可参考数量</span><b id="detailCount">0</b></div>
+                    <div><span>意图解析状态</span><b id="detailIntent">-</b></div>
+                    <div><span>执行时间</span><b id="detailElapsed">-</b></div>
+                </div>
+            </details>
+
+            <section class="section">
+                <h2>定时执行与推送</h2>
+                <div th:if="${taskMessage != null}" class="message" th:text="${taskMessage}"></div>
+                <div class="task-module">
+                    <div class="task-summary" th:if="${currentTask.id != null && !currentTask.id.isBlank()}">
+                        <div>
+                            <div class="task-summary-title">此次推送方案</div>
+                            <strong th:text="${currentTask.question}">每天十点发河南芯片招标信息</strong>
+                            <div class="task-meta">
+                                <span class="task-pill" th:text="${currentTask.frequencyText}">每日</span>
+                                <span class="task-pill">下次执行：<span th:text="${currentTask.nextRunAt}">暂无计划</span></span>
+                                <span class="task-pill" th:text="${currentTask.incrementalOnly ? '仅推送新增内容' : '推送完整结果'}">仅推送新增内容</span>
+                            </div>
+                            <p id="currentTaskRunState" class="status-text" style="margin:10px 0 0;"
+                               th:text="${currentTask.running ? '自动执行中，正在检索并生成报告。' : currentTask.lastRunMessage}">
+                                暂无自动执行记录
+                            </p>
+                            <a id="currentTaskReportLink" class="button small secondary" style="margin-top:10px;"
+                               th:if="${currentTask.lastReportFilename != null}"
+                               th:href="@{'/reports/' + ${currentTask.lastReportFilename}}">打开本次自动生成 Word</a>
+                        </div>
+                        <button class="small secondary" type="button"
+                                th:attr="data-id=${currentTask.id},data-question=${currentTask.question},data-frequency=${currentTask.frequency},data-time=${currentTask.time},data-incremental=${currentTask.incrementalOnly}"
+                                onclick="editTaskPlan(this)">编辑此次方案</button>
+                    </div>
+                    <div class="task-summary" th:if="${currentTask.id == null || currentTask.id.isBlank()}">
+                        <div>
+                            <div class="task-summary-title">此次推送方案</div>
+                            <strong>暂无已保存推送方案</strong>
+                            <div class="task-meta">
+                                <span class="task-pill">保存修改后会在这里显示</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="task-grid">
+                        <input id="taskIdInput" form="taskForm" type="hidden" name="taskId" th:value="${currentTask.id}">
+                        <div class="field">
+                            <label>任务内容</label>
+                            <textarea id="taskQuestionInput" form="taskForm" name="taskQuestion" th:text="${currentTask.question}"></textarea>
+                        </div>
+                        <div class="field">
+                            <label>执行频率</label>
+                            <select id="taskFrequencySelect" form="taskForm" name="frequency">
+                                <option value="DAILY" th:selected="${currentTask.frequency == 'DAILY'}">每日</option>
+                                <option value="WEEKLY" th:selected="${currentTask.frequency == 'WEEKLY'}">每周</option>
+                                <option value="ONCE" th:selected="${currentTask.frequency == 'ONCE'}">一次</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label>下次执行时间</label>
+                            <input id="taskTimeInput" form="taskForm" type="time" name="nextTime" th:value="${currentTask.time}">
+                        </div>
+                        <div class="field">
+                            <label>增量推送</label>
+                            <label class="switch">
+                                <input id="taskIncrementalInput" form="taskForm" type="checkbox" name="incrementalOnly"
+                                       th:checked="${currentTask.incrementalOnly}">
+                                仅推送新增内容
+                            </label>
+                        </div>
+                        <button form="taskForm" type="submit">保存修改</button>
+                    </div>
+
+                    <div class="plan-list" th:if="${taskPlans != null && !taskPlans.isEmpty()}">
+                        <h3>历史推送方案</h3>
+                        <div class="plan-row" th:each="plan : ${taskPlans}"
+                             th:attr="data-id=${plan.id},data-question=${plan.question},data-frequency=${plan.frequency},data-time=${plan.time},data-incremental=${plan.incrementalOnly}">
+                            <div>
+                                <strong th:text="${plan.question}">历史方案</strong>
+                                <div class="task-meta">
+                                    <span class="task-pill" th:text="${plan.frequencyText}">每日</span>
+                                    <span class="task-pill">下次执行：<span th:text="${plan.nextRunAt}">暂无计划</span></span>
+                                    <span class="task-pill" th:text="${plan.incrementalOnly ? '仅推送新增内容' : '推送完整结果'}">仅推送新增内容</span>
+                                    <span class="task-pill" th:text="${plan.running ? '自动执行中' : plan.lastRunMessage}">暂无自动执行记录</span>
+                                </div>
+                            </div>
+                            <div class="plan-actions">
+                                <button class="small secondary" type="button" onclick="editTaskPlan(this.closest('.plan-row'))">编辑</button>
+                                <button class="small secondary" type="button" onclick="deleteTaskPlan(this.closest('.plan-row').dataset.id)">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>可参考信息</h2>
+                <div id="emptyState" class="empty" th:style="${referenceCount > 0 ? 'display:none' : ''}">
+                    抱歉当前没有找到你想要的信息哦，建议您换一个时间/城市/商品试试哦~
+                </div>
+                <div id="resultCards" class="cards"></div>
+                <div id="pager" class="pager" style="display:none;">
+                    <button class="small secondary" type="button" onclick="changePage(-1)">上一页</button>
+                    <span id="pageInfo"></span>
+                    <button class="small secondary" type="button" onclick="changePage(1)">下一页</button>
+                </div>
+            </section>
+        </form>
+    </section>
+</main>
+
+<script th:inline="javascript">
+const loginSources = /*[[${loginSources}]]*/ [];
+let currentItems = /*[[${referenceItems}]]*/ [];
+let searchDone = /*[[${result != null}]]*/ false;
+let currentPage = 1;
+const pageSize = 5;
+let activeJobId = '';
+let pollTimer = null;
+let manualSearchActive = false;
+let appliedScheduledResultKey = '';
+const selectedWordItemIds = new Set();
+const currentCaptures = {};
+
+function clearSearchRuntimeState() {
+    activeJobId = '';
+    if (pollTimer) {
+        window.clearTimeout(pollTimer);
+        pollTimer = null;
+    }
+}
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function sourceKeyFor(name) {
+    const text = (name || '').toLowerCase();
+    if (text.includes('剑鱼') || text.includes('jianyu')) return 'jianyu';
+    return '';
+}
+
+function displayDate(item) {
+    return item.publishTime ? String(item.publishTime).replace('T', ' ').slice(0, 16) : '待核验';
+}
+
+function displayUrl(raw) {
+    const value = String(raw || '');
+    try {
+        const url = new URL(value);
+        const path = decodeURIComponent(url.pathname || '').replace(/\/$/, '');
+        return url.host + (path && path !== '/' ? path : '');
+    } catch (e) {
+        try { return decodeURIComponent(value); } catch (_) { return value; }
+    }
+}
+
+function summaryText(item) {
+    const text = (item.coreContent || item.displaySummary || '').replace(/\s+/g, ' ').trim();
+    return text || '正在提取内容摘要...';
+}
+
+function displayTitle(item) {
+    const title = item.title || '';
+    if (title.includes('打开全网检索') || item.sourceType === '检索入口') {
+        return item.sourceUrl || '全网检索入口';
+    }
+    return title || item.sourceUrl || '可参考信息';
+}
+
+function attachmentHtml(item) {
+    const links = item.attachmentLinks || [];
+    if (!links.length) {
+        return '';
+    }
+    return `<div class="attachments"><strong>附件链接</strong><ul>${
+        links.map(link => `<li><a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(link)}</a></li>`).join('')
+    }</ul></div>`;
+}
+
+function itemKey(item) {
+    return item.id || item.sourceUrl || item.title || '';
+}
+
+function renderResults() {
+    const container = document.getElementById('resultCards');
+    const empty = document.getElementById('emptyState');
+    const pager = document.getElementById('pager');
+    const items = currentItems.slice(0, 50);
+    empty.style.display = items.length ? 'none' : '';
+    pager.style.display = items.length > pageSize ? 'flex' : 'none';
+    const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+    currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+    const visible = items.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    container.innerHTML = visible.map(item => {
+        const sourceKey = sourceKeyFor(item.sourceName);
+        const loginVisible = sourceKey ? ' visible' : '';
+        const title = displayTitle(item);
+        const key = itemKey(item);
+        const checked = selectedWordItemIds.has(key) ? ' checked' : '';
+        return `<article class="result-card" data-source="${escapeHtml(item.sourceName || '')}">
+            <div class="result-head">
+                <div>
+                    <h3>${escapeHtml(title)}</h3>
+                    <div class="source-link">来源链接：<a href="${escapeHtml(item.sourceUrl || '#')}" target="_blank" rel="noopener noreferrer">${escapeHtml(displayUrl(item.sourceUrl || '待核验'))}</a></div>
+                </div>
+                <span class="date-pill">发布时间：${escapeHtml(displayDate(item))}</span>
+            </div>
+            <div class="summary">${escapeHtml(summaryText(item))}</div>
+            ${attachmentHtml(item)}
+            <div class="result-actions">
+                <a class="button small secondary" href="${escapeHtml(item.sourceUrl || '#')}" target="_blank" rel="noopener noreferrer">查看原文</a>
+                <label class="check"><input class="word-select" type="checkbox" name="selectedItemIds" value="${escapeHtml(key)}" data-item-id="${escapeHtml(key)}"${checked}> 是否写入word文档</label>
+                <span class="login-tools${loginVisible}">
+                    <button class="small secondary login-open" type="button" data-source-key="${sourceKey}">需登录</button>
+                    <button class="small secondary login-check" type="button" data-source-key="${sourceKey}">检查登录态</button>
+                    <span class="login-state"></span>
+                </span>
+            </div>
+        </article>`;
+    }).join('');
+    const info = document.getElementById('pageInfo');
+    if (info) info.textContent = `${currentPage} / ${totalPages}`;
+    document.getElementById('detailCount').textContent = items.length;
+    document.getElementById('downloadButton').disabled = !items.length || !searchDone;
+    bindWordCheckboxes();
+    bindLoginButtons();
+}
+
+function bindWordCheckboxes() {
+    document.querySelectorAll('.word-select').forEach(checkbox => {
+        checkbox.addEventListener('change', event => {
+            const id = event.target.dataset.itemId || '';
+            if (!id) return;
+            if (event.target.checked) {
+                selectedWordItemIds.add(id);
+            } else {
+                selectedWordItemIds.delete(id);
+            }
+        });
+    });
+}
+
+function changePage(delta) {
+    currentPage += delta;
+    renderResults();
+}
+
+function mergeItems(items) {
+    const byId = new Map(currentItems.map(item => [item.id || item.sourceUrl || item.title, item]));
+    (items || []).forEach(item => byId.set(item.id || item.sourceUrl || item.title, item));
+    currentItems = [...byId.values()].slice(0, 50);
+}
+
+function updateDetails(summary) {
+    if (!summary) return;
+    document.getElementById('detailKeyword').textContent = summary.keyword || '-';
+    document.getElementById('detailRegion').textContent = summary.region || '-';
+    document.getElementById('detailTime').textContent = summary.time || '-';
+    document.getElementById('detailFrequency').textContent = summary.frequency || '-';
+    document.getElementById('detailSources').textContent = summary.sourceTotal ?? '-';
+    document.getElementById('detailCount').textContent = summary.referenceCount ?? currentItems.length;
+    document.getElementById('detailIntent').textContent = summary.intentStatus || '-';
+    document.getElementById('detailElapsed').textContent = summary.elapsedText || '-';
+}
+
+document.getElementById('searchForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const question = document.getElementById('questionInput').value.trim();
+    if (!question) return;
+    if (pollTimer) {
+        window.clearTimeout(pollTimer);
+        pollTimer = null;
+    }
+    manualSearchActive = true;
+    appliedScheduledResultKey = '';
+    activeJobId = '';
+    currentItems = [];
+    selectedWordItemIds.clear();
+    searchDone = false;
+    currentPage = 1;
+    renderResults();
+    document.getElementById('searchStatus').textContent = '搜寻中，已完成的信息会先显示';
+    document.getElementById('searchStatus').classList.add('running');
+    document.getElementById('sendButton').disabled = true;
+    document.getElementById('stopButton').disabled = false;
+    const body = new URLSearchParams({question});
+    try {
+        const response = await fetch('/api/search/start', {method: 'POST', body});
+        if (!response.ok) {
+            throw new Error('搜索启动失败：HTTP ' + response.status);
+        }
+        const json = await response.json();
+        if (!json.success || !json.jobId) {
+            throw new Error(json.message || '搜索启动失败');
+        }
+        activeJobId = json.jobId;
+        document.getElementById('jobIdInput').value = activeJobId;
+        pollSearch();
+    } catch (e) {
+        manualSearchActive = false;
+        document.getElementById('searchStatus').textContent = e.message || '搜索启动失败，请重试';
+        document.getElementById('searchStatus').classList.remove('running');
+        document.getElementById('sendButton').disabled = false;
+        document.getElementById('stopButton').disabled = true;
+    }
+});
+
+async function pollSearch() {
+    if (!activeJobId) return;
+    try {
+        const response = await fetch('/api/search/' + encodeURIComponent(activeJobId), {cache: 'no-store'});
+        if (!response.ok) {
+            throw new Error('搜索轮询失败：HTTP ' + response.status);
+        }
+        const json = await response.json();
+        if (!json.success) {
+            throw new Error(json.message || '搜索任务异常');
+        }
+        mergeItems(json.items || []);
+        renderResults();
+        updateDetails(json.result);
+        if (json.done) {
+            searchDone = !!json.result;
+            manualSearchActive = false;
+            clearSearchRuntimeState();
+            renderResults();
+            document.getElementById('searchStatus').textContent = json.status === 'STOPPED'
+                    ? '已停止搜寻，已返回结果已保留'
+                    : (currentItems.length ? '搜寻完成' : '抱歉当前没有找到你想要的信息哦，建议您换一个时间/城市/商品试试哦~');
+            document.getElementById('searchStatus').classList.remove('running');
+            document.getElementById('sendButton').disabled = false;
+            document.getElementById('stopButton').disabled = true;
+            return;
+        }
+        pollTimer = window.setTimeout(pollSearch, 1200);
+    } catch (e) {
+        manualSearchActive = false;
+        clearSearchRuntimeState();
+        document.getElementById('searchStatus').textContent = e.message || '搜索失败，请重试';
+        document.getElementById('searchStatus').classList.remove('running');
+        document.getElementById('sendButton').disabled = false;
+        document.getElementById('stopButton').disabled = true;
+    }
+}
+
+document.getElementById('stopButton').addEventListener('click', async () => {
+    if (!activeJobId) return;
+    await fetch('/api/search/' + encodeURIComponent(activeJobId) + '/stop', {method: 'POST'});
+    document.getElementById('searchStatus').textContent = '正在停止后续网页分析，已返回结果会保留';
+    document.getElementById('stopButton').disabled = true;
+});
+
+window.submitWordSelection = async function submitWordSelection(event) {
+    if (event) event.preventDefault();
+    document.querySelectorAll('input.generated-selected-item').forEach(input => input.remove());
+    const selectedIds = collectSelectedWordItemIds();
+    if (!selectedIds.length) {
+        alert('请先勾选要写入 Word 的信息。');
+        return;
+    }
+    const form = document.getElementById('wordForm');
+    const body = new URLSearchParams();
+    const jobId = document.getElementById('jobIdInput')?.value || '';
+    if (jobId) body.append('jobId', jobId);
+    selectedIds.forEach(id => body.append('selectedItemIds', id));
+    const button = document.getElementById('downloadButton');
+    button.disabled = true;
+    const previousText = button.textContent;
+    button.textContent = '正在生成 Word...';
+    try {
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body,
+            headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'}
+        });
+        const html = await response.text();
+        if (!response.ok) {
+            throw new Error('Word 生成失败：HTTP ' + response.status);
+        }
+        const parsed = new DOMParser().parseFromString(html, 'text/html');
+        const errorNode = parsed.querySelector('.message.error');
+        if (errorNode && errorNode.textContent.trim()) {
+            throw new Error(errorNode.textContent.trim());
+        }
+        const messageNode = Array.from(parsed.querySelectorAll('.message'))
+            .find(node => node.textContent.includes('Word'));
+        const generatedLink = Array.from(parsed.querySelectorAll('a'))
+            .find(link => link.textContent.includes('打开已生成 Word'));
+        showWordGenerationResult(messageNode?.textContent?.trim(), generatedLink);
+        button.disabled = false;
+        button.textContent = previousText;
+    } catch (e) {
+        alert(e.message || 'Word 生成失败，请重试。');
+        button.disabled = false;
+        button.textContent = previousText;
+    }
+};
+
+document.getElementById('wordForm').addEventListener('submit', window.submitWordSelection);
+document.getElementById('downloadButton').addEventListener('click', window.submitWordSelection);
+
+function collectSelectedWordItemIds() {
+    const ids = new Set(selectedWordItemIds);
+    document.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+        const labelText = checkbox.closest('label')?.textContent || '';
+        const card = checkbox.closest('.result-card, article');
+        const isWordCheckbox = checkbox.classList.contains('word-select')
+            || checkbox.name === 'selectedItemIds'
+            || labelText.includes('word')
+            || labelText.includes('Word')
+            || labelText.includes('写入')
+            || (card && card.textContent.includes('是否写入'));
+        if (!isWordCheckbox) return;
+        const sourceLink = card?.querySelector('a[href^="http"]')?.getAttribute('href') || '';
+        const title = card?.querySelector('h3')?.textContent?.trim() || '';
+        const id = checkbox.dataset.itemId || checkbox.value || sourceLink || title;
+        if (id && id !== 'on') ids.add(id);
+    });
+    selectedWordItemIds.clear();
+    ids.forEach(id => selectedWordItemIds.add(id));
+    return Array.from(ids);
+}
+
+function showWordGenerationResult(message, generatedLink) {
+    const actions = document.querySelector('#wordForm .workspace-actions');
+    if (!actions) return;
+    document.querySelectorAll('.word-feedback, .generated-report-link').forEach(node => node.remove());
+    const feedback = document.createElement('span');
+    feedback.className = 'status-text word-feedback';
+    feedback.textContent = message || '已生成 Word 文件';
+    actions.appendChild(feedback);
+    if (generatedLink && generatedLink.getAttribute('href')) {
+        const link = document.createElement('a');
+        link.className = 'button secondary generated-report-link';
+        link.href = generatedLink.getAttribute('href');
+        link.textContent = '打开已生成 Word';
+        actions.appendChild(link);
+    }
+}
+
+function bindLoginButtons() {
+    document.querySelectorAll('.login-open').forEach(button => {
+        if (button.dataset.bound) return;
+        button.dataset.bound = '1';
+        button.addEventListener('click', async () => {
+            const sourceKey = button.dataset.sourceKey;
+            const state = button.parentElement.querySelector('.login-state');
+            const source = loginSources.find(item => item.sourceKey === sourceKey);
+            if (source && source.loginUrl) window.open(source.loginUrl, '_blank', 'noopener,noreferrer');
+            state.textContent = '正在打开登录态保存窗口';
+            try {
+                const res = await fetch('/api/login/' + encodeURIComponent(sourceKey) + '/capture/start', {method: 'POST'});
+                const json = await res.json();
+                if (json.success && json.data && json.data.captureId) {
+                    currentCaptures[sourceKey] = json.data.captureId;
+                    state.textContent = '登录完成后点击检查登录态';
+                } else {
+                    state.textContent = json.message || '登录窗口打开失败';
+                }
+            } catch (e) {
+                state.textContent = '登录窗口打开失败';
+            }
+        });
+    });
+    document.querySelectorAll('.login-check').forEach(button => {
+        if (button.dataset.bound) return;
+        button.dataset.bound = '1';
+        button.addEventListener('click', async () => {
+            const sourceKey = button.dataset.sourceKey;
+            const state = button.parentElement.querySelector('.login-state');
+            try {
+                if (currentCaptures[sourceKey]) {
+                    await fetch('/api/login/' + encodeURIComponent(sourceKey) + '/capture/' + encodeURIComponent(currentCaptures[sourceKey]) + '/save', {method: 'POST'});
+                    delete currentCaptures[sourceKey];
+                }
+                const res = await fetch('/api/login/' + encodeURIComponent(sourceKey) + '/status', {cache: 'no-store'});
+                const json = await res.json();
+                state.textContent = json.success && json.data && json.data.exists ? '成功保存' : '登录态不可用，请重新登录该来源。';
+            } catch (e) {
+                state.textContent = '登录态不可用，请重新登录该来源。';
+            }
+        });
+    });
+}
+
+async function refreshAgentHealth() {
+    const title = document.getElementById('agentStatus');
+    const detail = document.getElementById('agentDetail');
+    try {
+        const res = await fetch('/api/agent/health', {cache: 'no-store'});
+        const json = await res.json();
+        if (json.modelAvailable) {
+            title.textContent = 'Agent 可用';
+            detail.textContent = json.model || 'kimi-k2.6';
+        } else {
+            title.textContent = 'Agent 异常，规则兜底';
+            detail.textContent = json.model || '模型不可用';
+        }
+    } catch (e) {
+        title.textContent = 'Agent 异常，规则兜底';
+        detail.textContent = '健康检测失败';
+    }
+}
+
+function editTaskPlan(source) {
+    const data = source.dataset || {};
+    document.getElementById('taskIdInput').value = data.id || '';
+    document.getElementById('taskQuestionInput').value = data.question || '';
+    document.getElementById('taskFrequencySelect').value = data.frequency || 'DAILY';
+    document.getElementById('taskTimeInput').value = data.time || '09:00';
+    document.getElementById('taskIncrementalInput').checked = data.incremental !== 'false';
+    document.getElementById('taskQuestionInput').focus();
+}
+
+async function deleteTaskPlan(id) {
+    if (!id || !confirm('确认删除这个推送方案吗？')) {
+        return;
+    }
+    await fetch('/api/tasks/' + encodeURIComponent(id) + '/delete', {method: 'POST'});
+    window.location.reload();
+}
+
+async function refreshTaskStatus() {
+    const state = document.getElementById('currentTaskRunState');
+    if (!state) {
+        return;
+    }
+    try {
+        const res = await fetch('/api/tasks/status', {cache: 'no-store'});
+        const json = await res.json();
+        const task = json.currentTask;
+        if (!json.success || !task || !task.id) {
+            return;
+        }
+        state.textContent = task.running ? '自动执行中，正在检索并生成报告。' : (task.lastRunMessage || '暂无自动执行记录');
+        const searchBusy = manualSearchActive
+                || !!pollTimer
+                || !document.getElementById('stopButton')?.disabled;
+        const scheduledResultKey = `${task.id || ''}|${task.lastRunStatus || ''}|${task.lastReportFilename || ''}|${(json.latestItems || []).length}`;
+        if (!searchBusy && json.latestItems && json.latestItems.length
+                && scheduledResultKey !== appliedScheduledResultKey) {
+            appliedScheduledResultKey = scheduledResultKey;
+            mergeItems(json.latestItems);
+            searchDone = true;
+            renderResults();
+            updateDetails(json.latestResult);
+            const status = document.getElementById('searchStatus');
+            if (status) {
+                status.textContent = task.running ? '自动推送执行中，已返回的信息会先显示' : '自动推送执行完成，结果已展示';
+                status.classList.toggle('running', !!task.running);
+            }
+        }
+        let link = document.getElementById('currentTaskReportLink');
+        if (task.lastReportFilename) {
+            if (!link) {
+                link = document.createElement('a');
+                link.id = 'currentTaskReportLink';
+                link.className = 'button small secondary';
+                link.style.marginTop = '10px';
+                link.textContent = '打开本次自动生成 Word';
+                state.insertAdjacentElement('afterend', link);
+            }
+            link.href = '/reports/' + encodeURIComponent(task.lastReportFilename);
+            link.style.display = 'inline-flex';
+        } else if (link) {
+            link.style.display = 'none';
+        }
+    } catch (e) {
+        // 定时状态刷新失败不影响查询主流程。
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    renderResults();
+    refreshAgentHealth();
+    refreshTaskStatus();
+    window.setInterval(refreshTaskStatus, 5000);
+});
+</script>
+</body>
+</html>

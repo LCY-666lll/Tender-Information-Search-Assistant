@@ -1,0 +1,112 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: bid-aggregator
+
+app:
+  data-dir: data
+  reports-dir: data/reports
+  request-timeout-ms: 3500
+  max-items-per-source: 12
+  agent-base-url: ${XFUSION_BASE_URL:http://218.28.9.108:50053/v1}
+  agent-model: ${XFUSION_MODEL:kimi-k2.6}
+  agent-api-key: ${XFUSION_API_KEY:}
+  agent-timeout-seconds: 15
+  login-wait-seconds: 120
+  sources:
+    - key: national-ggzy
+      name: 全国公共资源交易平台
+      type: 官方公共资源
+      url: https://www.ggzy.gov.cn/
+      enabled: true
+      need-login: false
+    - key: ccgp
+      name: 中国政府采购网
+      type: 政府采购
+      url: https://www.ccgp.gov.cn/
+      enabled: true
+      need-login: false
+    - key: cebpubservice
+      name: 中国招标投标公共服务平台
+      type: 招投标专业源
+      url: https://www.cebpubservice.com/
+      enabled: true
+      need-login: false
+    - key: shggzy
+      name: 上海公共资源交易平台
+      type: 省级公共资源
+      url: https://www.shggzy.com/
+      enabled: true
+      need-login: false
+    - key: beijing-gov
+      name: 北京市政府采购网
+      type: 地方政府采购
+      url: http://www.ccgp-beijing.gov.cn/
+      enabled: true
+      need-login: false
+    - key: beijing-ggzy
+      name: 北京市公共资源交易服务平台
+      type: 地方公共资源
+      url: https://ggzyfw.beijing.gov.cn/
+      enabled: true
+      need-login: false
+    - key: js-gov
+      name: 江苏政府采购网
+      type: 地方政府采购
+      url: https://www.ccgp-jiangsu.gov.cn/
+      enabled: true
+      need-login: false
+    - key: njggzy
+      name: 南京公共资源交易平台
+      type: 地方公共资源
+      url: https://njggzy.nanjing.gov.cn/
+      enabled: true
+      need-login: false
+    - key: gdgpo
+      name: 广东政府采购网
+      type: 地方政府采购
+      url: https://gdgpo.czt.gd.gov.cn/
+      enabled: true
+      need-login: false
+    - key: gdggzy
+      name: 广东公共资源交易平台
+      type: 地方公共资源
+      url: https://ygp.gdzwfw.gov.cn/
+      enabled: true
+      need-login: false
+    - key: henan-gov
+      name: 河南政府采购网
+      type: 地方政府采购
+      url: https://www.hngp.gov.cn/
+      enabled: true
+      need-login: false
+    - key: zzggzy
+      name: 郑州公共资源交易平台
+      type: 地方公共资源
+      url: https://zzggzy.zhengzhou.gov.cn/
+      enabled: true
+      need-login: false
+    - key: zhejiang-gov
+      name: 浙江政府采购网
+      type: 地方政府采购
+      url: https://zfcg.czt.zj.gov.cn/
+      enabled: true
+      need-login: false
+    - key: jianyu
+      name: 剑鱼标讯
+      type: 商业聚合/登录源
+      url: https://www.jianyu360.cn/
+      login-url: https://www.jianyu360.cn/login
+      storage-state: data/login/jianyu-state.json
+      enabled: true
+      need-login: true
+    - key: bidcenter
+      name: 招标与采购网
+      type: 商业聚合/登录源
+      url: https://www.bidcenter.com.cn/
+      login-url: https://www.bidcenter.com.cn/
+      storage-state: data/login/bidcenter-state.json
+      enabled: true
+      need-login: true

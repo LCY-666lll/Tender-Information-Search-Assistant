@@ -1,0 +1,8 @@
+/target/
+/data/
+*.log
+*.tmp
+.idea/
+.env
+.env.*
+*.zip
