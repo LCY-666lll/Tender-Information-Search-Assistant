@@ -25,10 +25,6 @@ public class SourceHarvestService {
         this.webSearchService = webSearchService;
     }
 
-    public List<SourceCrawler> enabledCrawlers() {
-        return crawlerRegistry.enabledCrawlers();
-    }
-
     public List<SourceCrawler> enabledCrawlers(SearchIntent intent) {
         return crawlerRegistry.enabledCrawlers(intent);
     }
